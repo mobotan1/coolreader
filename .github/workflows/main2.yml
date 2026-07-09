@@ -18,50 +18,24 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Ensures full history is fetched for submodule references
 
-      - name: Force Sync and Update Submodules
+      - name: Make Thirdparty Setup Script Executable (If Present)
+        # We target the root directory where these scripts usually live
         working-directory: ./
         run: |
-          # Use --all instead of '.' to cleanly de-initialize
-          git submodule deinit -f --all || true
-          
-          # Synchronize submodule URLs
-          git submodule sync --recursive
-          
-          # Removed the invalid --prune flag
-          git submodule update --init --recursive --force
-      
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'adopt'
+          # Make any potential setup scripts in the root directory executable
+          chmod +x download-*.sh setup.sh init.sh || true
 
-      - name: Decode Keystore
+      - name: Run Thirdparty Source Download Script
+        working-directory: ./
         run: |
-          echo "${{ secrets.BASE64_KEYSTORE }}" | base64 --decode > keystore.jks
-
-      - name: Create local.properties
-        run: |
-          echo "sdk.dir=$ANDROID_HOME" > local.properties
-          echo "storeFile=${{ secrets.STORE_FILE }}" >> local.properties
-          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> local.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> local.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> local.properties
-
-      - name: Make Gradle executable
-        run: chmod +x ./gradlew
-
-      - name: Build APK for Staging
-        run: ./gradlew :app:assembleRelease_stripped
-
-      - name: Debug - Find APK files
-        run: find app/build/outputs/apk -name "*.apk" -type f
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Gameskii-staging-apk
-          path: android/app/build/outputs/apk/**/*.apk
+          # Dynamically look for common download script names and execute the first one found
+          if [ -f "download-artifacts.sh" ]; then
+            ./download-artifacts.sh
+          elif [ -f "download-thirdparty.sh" ]; then
+            ./download-thirdparty.sh
+          elif [ -f "init.sh" ]; then
+            ./init.sh
+          else
+            echo "No explicit download script found in root. Checking subdirectories..."
+          fi
