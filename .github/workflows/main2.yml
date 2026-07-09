@@ -20,11 +20,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Target Submodules in App Folder
-        # Move directly into the folder housing the thirdparty dependencies
-        working-directory: ./android/app
+      - name: Force Sync and Update Submodules from Root
+        # Run from the absolute root of the repository
+        working-directory: ./
         run: |
+          # Clear any broken nested registrations
+          git submodule deinit -f --all || true
+          
+          # Force sync registry URLs from the top-level configuration
           git submodule sync --recursive
+          
+          # Force clone the missing source directories down into the tree
           git submodule update --init --recursive --force
 
       - name: Set up JDK
