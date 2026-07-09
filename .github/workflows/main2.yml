@@ -9,27 +9,24 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
-    # This forces every 'run:' command to execute inside your subfolder
+
+    # Set the working directory to the 'android' folder for all run steps
     defaults:
       run:
         working-directory: ./android
 
-   steps:
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Required to ensure full Git history is available for all branches
+          fetch-depth: 0 # Ensures full history is fetched for submodule references
 
       - name: Force Sync and Update Submodules
+        # We run this from the root directory to capture the top-level .gitmodules
+        working-directory: ./
         run: |
-          # De-initialize any broken submodule states
           git submodule deinit -f . || true
-          
-          # Update the submodule URLs to match the repository configuration
           git submodule sync --recursive
-          
-          # Force a clean clone of all third-party libraries and nested dependencies
           git submodule update --init --recursive --force --prune
 
       - name: Set up JDK
@@ -38,19 +35,29 @@ jobs:
           java-version: '17'
           distribution: 'adopt'
 
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.BASE64_KEYSTORE }}" | base64 --decode > keystore.jks
+
+      - name: Create local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "storeFile=${{ secrets.STORE_FILE }}" >> local.properties
+          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> local.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> local.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> local.properties
+
       - name: Make Gradle executable
-        run: chmod +x ./gradlew   
+        run: chmod +x ./gradlew
 
       - name: Build APK for Staging
         run: ./gradlew :app:assembleRelease_stripped
 
       - name: Debug - Find APK files
-        # Updated search path to look inside your subfolder
         run: find app/build/outputs/apk -name "*.apk" -type f
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: Gameskii-staging-apk
-          # Path matched to standard Gradle outputs under your working directory
-          path: app/build/outputs/apk/**/*.apk
+          path: android/app/build/outputs/apk/**/*.apk
