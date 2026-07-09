@@ -53,4 +53,4 @@ jobs:
         with:
           name: Gameskii-staging-apk
           # Path matched to standard Gradle outputs under your working directory
-          path: android/app/build/outputs/apk/**/*.apk
+          path: app/build/outputs/apk/**/*.apk
