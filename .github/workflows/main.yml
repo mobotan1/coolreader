@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - staging
+  workflow_dispatch:
 
 jobs:
   build:
@@ -11,37 +12,25 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up JDK (fixed)
-        uses: actions/setup-java@v3
+      - name: Set up JDK
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'adopt'
 
-      - name: Decode Keystore
+      - name: Install Gradle and Generate Wrapper
         run: |
-          echo "${{ secrets.BASE64_KEYSTORE }}" | base64 --decode > keystore.jks
+          sudo apt-get update && sudo apt-get install -y gradle
+          gradle wrapper
 
-      - name: Create local.properties
+      - name: Commit and Push Wrapper Files
         run: |
-          echo "sdk.dir=$ANDROID_HOME" > local.properties
-          echo "storeFile=${{ secrets.STORE_FILE }}" >> local.properties
-          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> local.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> local.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> local.properties
-
-      - name: Make Gradle executable
-        run: chmod +x ./gradlew
-
-      - name: Build APK for Staging
-        run: ./gradlew assembleBetaStaging
-
-      - name: Debug - Find APK files
-        run: find app -name "*.apk" -type f
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Gameskii-staging-apk
-          path: app/build/outputs/apk/**/*.apk
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add gradlew gradlew.bat gradle/wrapper/
+          git commit -m "chore: auto-generate gradle wrapper"
+          git push origin staging
