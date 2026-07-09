@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - staging
-  workflow_dispatch: # <-- Add this line (it can be completely empty)
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,10 +12,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4  # <-- Upgraded from v3
 
       - name: Set up JDK (fixed)
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4  # <-- Upgraded from v3
         with:
           java-version: '17'
           distribution: 'adopt'
