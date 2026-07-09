@@ -15,12 +15,22 @@ jobs:
       run:
         working-directory: ./android
 
-    steps:
+   steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: 'recursive'
-          fetch-depth: 0  # <-- Pulls all tags, branches, and historical commits for submodules
+          fetch-depth: 0  # Required to ensure full Git history is available for all branches
+
+      - name: Force Sync and Update Submodules
+        run: |
+          # De-initialize any broken submodule states
+          git submodule deinit -f . || true
+          
+          # Update the submodule URLs to match the repository configuration
+          git submodule sync --recursive
+          
+          # Force a clean clone of all third-party libraries and nested dependencies
+          git submodule update --init --recursive --force --prune
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -28,24 +38,11 @@ jobs:
           java-version: '17'
           distribution: 'adopt'
 
-      - name: Decode Keystore
-        run: |
-          echo "${{ secrets.BASE64_KEYSTORE }}" | base64 --decode > keystore.jks
-
-      - name: Create local.properties
-        run: |
-          echo "sdk.dir=$ANDROID_HOME" > local.properties
-          echo "storeFile=${{ secrets.STORE_FILE }}" >> local.properties
-          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> local.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> local.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> local.properties
-
       - name: Make Gradle executable
         run: chmod +x ./gradlew   
 
       - name: Build APK for Staging
-        # Using the actual variant found in your logs
-        run: ./gradlew :app:assembleRelease
+        run: ./gradlew :app:assembleRelease_stripped
 
       - name: Debug - Find APK files
         # Updated search path to look inside your subfolder
