@@ -1,1 +1,37 @@
+name: Gradle update 
 
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'adopt'
+
+      - name: Install Gradle and Generate Modern Wrapper
+        run: |
+          sudo apt-get update && sudo apt-get install -y gradle
+          # This forces the wrapper to use a version compatible with Java 17
+          gradle wrapper --gradle-version 8.4
+
+      - name: Commit and Push Wrapper Files
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add gradlew gradlew.bat gradle/wrapper/
+          git commit -m "chore: upgrade gradle wrapper to 8.4"
+          git push origin HEAD:${{ github.ref_name }}
