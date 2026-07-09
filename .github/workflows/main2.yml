@@ -14,13 +14,16 @@ jobs:
     defaults:
       run:
         working-directory: ./android
-        
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4  # <-- Upgraded from v3
+        uses: actions/checkout@v4
+        with:
+          # This line tells GitHub to download all submodules and their source files
+          submodules: recursive  
 
-      - name: Set up JDK (fixed)
-        uses: actions/setup-java@v4  # <-- Upgraded from v3
+      - name: Set up JDK
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'adopt'
