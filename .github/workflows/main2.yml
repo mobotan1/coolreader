@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - staging
+  workflow_dispatch: # <-- Add this line (it can be completely empty)
 
 jobs:
   build:
