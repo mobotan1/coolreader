@@ -19,8 +19,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # This line tells GitHub to download all submodules and their source files
-          submodules: recursive  
+          submodules: 'recursive'
+          fetch-depth: 0  # <-- Pulls all tags, branches, and historical commits for submodules
 
       - name: Set up JDK
         uses: actions/setup-java@v4
