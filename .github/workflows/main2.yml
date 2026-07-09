@@ -22,13 +22,17 @@ jobs:
           fetch-depth: 0 # Ensures full history is fetched for submodule references
 
       - name: Force Sync and Update Submodules
-        # We run this from the root directory to capture the top-level .gitmodules
         working-directory: ./
         run: |
-          git submodule deinit -f . || true
+          # Use --all instead of '.' to cleanly de-initialize
+          git submodule deinit -f --all || true
+          
+          # Synchronize submodule URLs
           git submodule sync --recursive
-          git submodule update --init --recursive --force --prune
-
+          
+          # Removed the invalid --prune flag
+          git submodule update --init --recursive --force
+      
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
