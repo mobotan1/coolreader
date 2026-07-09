@@ -10,19 +10,22 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # Forces every 'run:' step to operate inside the android directory
     defaults:
       run:
         working-directory: ./android
 
     steps:
-      - name: Checkout repository with submodules
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # Tells GitHub Actions to recursively fetch all native submodules automatically
-          submodules: 'recursive'
-          # Disables shallow cloning so older submodule references resolve cleanly
           fetch-depth: 0
+
+      - name: Target Submodules in App Folder
+        # Move directly into the folder housing the thirdparty dependencies
+        working-directory: ./android/app
+        run: |
+          git submodule sync --recursive
+          git submodule update --init --recursive --force
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -46,7 +49,6 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build APK for Staging
-        # Runs the specific stripped release variant found in your project logs
         run: ./gradlew :app:assembleRelease_stripped
 
       - name: Debug - Find APK files
