@@ -10,32 +10,50 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # Set the working directory to the 'android' folder for all run steps
+    # Forces every 'run:' step to operate inside the android directory
     defaults:
       run:
         working-directory: ./android
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repository with submodules
         uses: actions/checkout@v4
+        with:
+          # Tells GitHub Actions to recursively fetch all native submodules automatically
+          submodules: 'recursive'
+          # Disables shallow cloning so older submodule references resolve cleanly
+          fetch-depth: 0
 
-      - name: Make Thirdparty Setup Script Executable (If Present)
-        # We target the root directory where these scripts usually live
-        working-directory: ./
-        run: |
-          # Make any potential setup scripts in the root directory executable
-          chmod +x download-*.sh setup.sh init.sh || true
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'adopt'
 
-      - name: Run Thirdparty Source Download Script
-        working-directory: ./
+      - name: Decode Keystore
         run: |
-          # Dynamically look for common download script names and execute the first one found
-          if [ -f "download-artifacts.sh" ]; then
-            ./download-artifacts.sh
-          elif [ -f "download-thirdparty.sh" ]; then
-            ./download-thirdparty.sh
-          elif [ -f "init.sh" ]; then
-            ./init.sh
-          else
-            echo "No explicit download script found in root. Checking subdirectories..."
-          fi
+          echo "${{ secrets.BASE64_KEYSTORE }}" | base64 --decode > keystore.jks
+
+      - name: Create local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "storeFile=${{ secrets.STORE_FILE }}" >> local.properties
+          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> local.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> local.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> local.properties
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Build APK for Staging
+        # Runs the specific stripped release variant found in your project logs
+        run: ./gradlew :app:assembleRelease_stripped
+
+      - name: Debug - Find APK files
+        run: find app/build/outputs/apk -name "*.apk" -type f
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gameskii-staging-apk
+          path: android/app/build/outputs/apk/**/*.apk
