@@ -9,7 +9,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
+    # This forces every 'run:' command to execute inside your subfolder
+    defaults:
+      run:
+        working-directory: ./android
+        
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4  # <-- Upgraded from v3
