@@ -38,7 +38,19 @@ jobs:
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> local.properties
 
       - name: Make Gradle executable
-        run: chmod +x ./gradlew
+        run: chmod +x ./gradlew   
 
-      - name: List Available Gradle Tasks
-        run: ./gradlew tasks --all
+      - name: Build APK for Staging
+        # Using the actual variant found in your logs
+        run: ./gradlew :app:assembleRelease
+
+      - name: Debug - Find APK files
+        # Updated search path to look inside your subfolder
+        run: find app/build/outputs/apk -name "*.apk" -type f
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gameskii-staging-apk
+          # Path matched to standard Gradle outputs under your working directory
+          path: android/app/build/outputs/apk/**/*.apk
